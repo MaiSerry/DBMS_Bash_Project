@@ -1,0 +1,20 @@
+#! user/bin/bash
+
+read -r line
+count=$#
+
+line=$(echo "$line" | tr '[:upper:]' '[:lower:]')
+
+set -- $line
+
+if [[ "$count" -ne 2 ]]
+then
+  echo invalid syntax,
+else
+  if [[ "$1" -eq "show" && "$2" -eq "databases" ]]
+  then
+   ls ./dbms
+  else
+   invalid, syntax
+  fi
+fi
