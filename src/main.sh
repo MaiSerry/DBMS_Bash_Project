@@ -19,7 +19,7 @@ main_menu() {
             3) connecting_database ;;
             4) drop_db ;;
             5) break ;;
-            *) echo "Invalid option please choose an option from 1 to 5 !" ;;
+            *) echo "Invalid option please choose an option from 1 to 5 ! " ;;
         esac
         
     done

@@ -9,7 +9,7 @@ connecting_database() {
     
     if [ -d "./DBMS/$db" ]; then
        
-        cd "./DBMS/$db" 2> /dev/null  || { echo "Error opening $db"; exit; }
+        cd "./DBMS/$db" 2> /dev/null || { echo "Error opening $db"; exit; }
          
          echo "Connected to : $db"
         
