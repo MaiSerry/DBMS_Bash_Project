@@ -1,0 +1,44 @@
+#! user/bin/bash
+
+# if the user connected to database :-
+# there we will start to create tables
+# else : will have an error
+# then access this tables , or go into it to have columns
+# in columns inside the table we will have to things to do :-
+#     1- enter columns names
+#     2- enter their datatypes
+
+create_tables(){
+read -r name
+name=$(echo "$name" | tr '[:upper:]' '[:lower:]')
+set -- $name
+count=$#
+table_name=$3
+
+if [[ "$count" -eq 3  ]]
+then
+  if [[ "$1" == "create" && "$2" == "table" ]]
+  then
+    if [[ $table_name =~ ^[a-zA-Z][a-zA-Z0-9_-]*$ ]]
+    then
+      if [[ -f "/$table_name" ]]
+      then
+        echo Table is exist,
+      else
+        touch ./$table_name 2>/dev/null
+        echo Table created successfully
+      fi
+    else
+     echo your table name not valid
+    fi
+
+  else
+   echo check your syntax,
+   fi
+
+else
+  echo Syntax errorr,
+fi
+}
+
+
