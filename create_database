@@ -1,0 +1,56 @@
+#!/usr/bin/bash
+
+create_database(){
+mode="$1"
+
+if [[ "$mode" == "menu" ]]; then
+    echo "Enter database name: "
+    read -r db_name
+    line="create database $db_name"
+else
+    echo "Enter your command: "
+    read -r line
+fi
+
+line=$(echo "$line" | tr '[:upper:]' '[:lower:]')
+
+set -- $line
+count=$#
+db_name=$3
+
+if [[ "$mode" == "menu" ]]; then
+    if [[ $db_name =~ ^[a-zA-Z][A-Za-z0-9_-]*$ ]]; then
+        if [[ -d "./dbms/$db_name" ]]; then
+            echo database already exists, choose another name
+        else
+            mkdir ./dbms/$db_name 2>/dev/null
+            echo database created successfully
+        fi
+    else
+        echo invalid name db
+    fi
+    return
+fi
+
+if [[ "$count" -ne 3 ]]
+then
+  echo invalid syntax, try again
+
+elif [[ "$1" == "create" && "$2" == "database" ]]
+then
+  if [[ $db_name =~ ^[a-zA-Z][A-Za-z0-9_-]*$ ]]
+  then
+    if [[ -d "./dbms/$db_name"  ]]
+    then
+      echo database already exists, choose another name
+    else
+      mkdir ./dbms/$db_name 2>/dev/null
+      echo database created successfully
+    fi
+  else
+    echo invalid name db
+  fi
+else
+  echo check your syntax
+fi
+}
