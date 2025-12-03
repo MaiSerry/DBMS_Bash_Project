@@ -1,0 +1,190 @@
+#! /bin/bash
+
+update_table() {
+if [[ "$mode" = "sql" ]]
+then
+    echo "Example: update table_name set column_name = new_value where pk = value"
+    read -r cmd
+
+    cmd=$(echo "$cmd" | tr '[:upper:]' '[:lower:]')
+
+    if [[ ! "$cmd" =~ ^update\ ([a-z0-9_]+)\ set\ (.+)\ where\ (.+)$ ]]; then
+        echo "Bad update syntax!"
+        return 1
+    fi
+
+    table_name=$(echo "$cmd" | awk '{print $2}')
+
+    if [[ ! -f "$table_name" ]]; then
+        echo "Table not found!"
+        return
+    fi
+
+    meta="$table_name.meta"
+
+    columns=()
+    types=()
+    pk_index=-1
+
+    i=0
+    while IFS=':' read -r cname ctype flag; do
+        columns+=("$cname")
+        types+=("$ctype")
+        [[ "$flag" == "pk" ]] && pk_index=$i
+        ((i++))
+    done < "$meta"
+
+    set_part=$(echo "$cmd" | sed -n 's/^update\ [^ ]*\ set\ \(.*\)\ where.*/\1/p')
+    where_part=$(echo "$cmd" | sed -n 's/.*where\ \(.*\)$/\1/p')
+
+    set_col=$(echo "$set_part" | cut -d'=' -f1 | xargs)
+    set_val=$(echo "$set_part" | cut -d'=' -f2 | xargs)
+
+    where_col=$(echo "$where_part" | cut -d'=' -f1 | xargs)
+    where_val=$(echo "$where_part" | cut -d'=' -f2 | xargs)
+
+    pk_col="${columns[$pk_index]}"
+
+    if [[ "$where_col" != "$pk_col" ]]; then
+        echo "WHERE must filter on primary key ($pk_col)"
+        return
+    fi
+
+    set_index=-1
+    for i in "${!columns[@]}"; do
+        if [[ "${columns[$i]}" == "$set_col" ]]; then
+            set_index=$i
+        fi
+    done
+
+    if [[ $set_index -eq -1 ]]; then
+        echo "Column '$set_col' not found!"
+        return
+    fi
+
+    ctype="${types[$set_index]}"
+
+    case $ctype in
+        int)
+            [[ "$set_val" =~ ^[0-9]+$ ]] || { echo "Invalid int"; return; }
+            ;;
+        char)
+            [[ "$set_val" =~ ^[a-zA-Z]+$ ]] || { echo "Invalid char"; return; }
+            ;;
+        float)
+            [[ "$set_val" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "Invalid float"; return; }
+            ;;
+    esac
+
+    tmp="tmp_$$"
+    touch "$tmp"
+
+    updated=false
+
+    while IFS= read -r line; do
+        IFS=':' read -ra parts <<< "$line"
+
+        if [[ "${parts[$pk_index]}" == "$where_val" ]]; then
+            parts[$set_index]="$set_val"
+            updated=true
+        fi
+
+        (IFS=':'; echo "${parts[*]}") >> "$tmp"
+
+    done < "$table_name"
+
+    mv "$tmp" "$table_name"
+
+    $updated && echo "Row updated." || echo "No row found with PK = $where_val"
+#########################MAIN MENU#################################
+else
+
+    echo "----- Update Table (Menu Mode) -----"
+
+    read -p "Enter table name: " table_name
+    table_name=$(echo "$table_name" | xargs)
+
+    if [[ ! -f "$table_name" ]]; then
+        echo "Table not found!"
+        return 1
+    fi
+
+    meta="$table_name.meta"
+
+    columns=()
+    types=()
+    pk_index=-1
+
+    i=0
+    while IFS=':' read -r cname ctype flag; do
+        columns+=("$cname")
+        types+=("$ctype")
+        [[ "$flag" == "pk" ]] && pk_index=$i
+        ((i++))
+    done < "$meta"
+
+    echo "Available columns:"
+    for c in "${columns[@]}"; do
+        echo " - $c"
+    done
+
+    read -p "Enter column to update: " set_col
+    set_col=$(echo "$set_col" | xargs)
+
+    set_index=-1
+    for i in "${!columns[@]}"; do
+        if [[ "${columns[$i]}" == "$set_col" ]]; then
+            set_index=$i
+        fi
+    done
+
+    if [[ $set_index -eq -1 ]]; then
+        echo "Column '$set_col' not found!"
+        return
+    fi
+
+    read -p "Enter new value: " set_val
+    set_val=$(echo "$set_val" | xargs)
+
+    # PK لتحديد الصف
+    pk_col="${columns[$pk_index]}"
+    read -p "Enter primary key value ($pk_col) to identify row: " where_val
+    where_val=$(echo "$where_val" | xargs)
+
+    ctype="${types[$set_index]}"
+    case $ctype in
+        int)
+            [[ "$set_val" =~ ^[0-9]+$ ]] || { echo "Invalid int"; return; }
+            ;;
+        char)
+            [[ "$set_val" =~ ^[a-zA-Z]+$ ]] || { echo "Invalid char"; return; }
+            ;;
+        float)
+            [[ "$set_val" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "Invalid float"; return; }
+            ;;
+    esac
+
+    tmp="tmp_$$"
+    touch "$tmp"
+    updated=false
+
+    while IFS= read -r line; do
+        IFS=':' read -ra parts <<< "$line"
+
+        if [[ "${parts[$pk_index]}" == "$where_val" ]]; then
+            parts[$set_index]="$set_val"
+            updated=true
+        fi
+
+        (IFS=':'; echo "${parts[*]}") >> "$tmp"
+
+    done < "$table_name"
+
+    mv "$tmp" "$table_name"
+
+    $updated && echo "Row updated." || echo "No row found with PK = $where_val"
+    
+fi
+}
+    
+  

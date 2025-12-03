@@ -1,0 +1,155 @@
+#! usr/bin/bash
+
+create_tables() {
+if [[ "$mode" = "sql" ]]
+then
+    echo "Enter your command: "
+    read -r cmd_line
+
+    cmd_line=$(echo "$cmd_line" | tr '[:upper:]' '[:lower:]')
+
+    if [[ ! "$cmd_line" =~ \(.*\) ]]; then
+        echo "Error: missing parentheses!"
+        return 1
+    fi
+
+    set -- $cmd_line
+    if [[ "$1" != "create" || "$2" != "table" ]]; then
+        echo "Invalid syntax!"
+        return 1
+    fi
+
+    table_name="$3"
+
+    if [[ -f "$table_name" ]]; then
+        echo "Table already exists!"
+        return 1
+    fi
+
+    cols_str="${cmd_line#*\(}"
+    cols_str="${cols_str%\)}"
+
+    IFS=',' read -ra col_defs <<< "$cols_str"
+
+    valid_types=("int" "char" "float")
+    pk_count=0
+
+    touch "$table_name"
+    touch "$table_name.meta"
+
+    for col_def in "${col_defs[@]}"; do
+        col_def=$(echo "$col_def" | xargs)
+
+        set -- $col_def
+
+        if [[ $# -eq 2 ]]; then
+            col="$1"
+            dtype="$2"
+            ispk=""
+        elif [[ $# -eq 3 ]]; then
+            col="$1"
+            pkflag="$2"
+            dtype="$3"
+            if [[ "$pkflag" != "pk" ]]; then
+                echo "Invalid PK syntax in $col"
+                rm "$table_name" "$table_name.meta"
+                return 1
+            fi
+            ispk="pk"
+            ((pk_count++))
+        else
+            echo "Bad column: $col_def"
+            rm "$table_name" "$table_name.meta"
+            return 1
+        fi
+
+        if [[ ! " ${valid_types[*]} " =~ " $dtype " ]]; then
+            echo "Invalid datatype: $dtype"
+            rm "$table_name" "$table_name.meta"
+            return 1
+        fi
+
+        if [[ "$ispk" == "pk" ]]; then
+            echo "$col:$dtype:pk" >> "$table_name.meta"
+        else
+            echo "$col:$dtype" >> "$table_name.meta"
+        fi
+
+    done
+
+    if [[ $pk_count -ne 1 ]]; then
+        echo "You must define exactly ONE primary key!"
+        rm "$table_name" "$table_name.meta"
+        return 1
+    fi
+
+    echo "Table created successfully"
+    
+########################### MENU MODE ################################
+else
+    echo "Enter table name: "
+    read -r table_name
+    table_name=$(echo "$table_name" | xargs)
+
+    if [[ -f "$table_name" ]]; then
+        echo "Table already exists!"
+        return 1
+    fi
+
+    # عدد الأعمدة
+    read -p "Enter number of columns: " num_cols
+    if ! [[ "$num_cols" =~ ^[0-9]+$ ]] || ((num_cols < 1)); then
+        echo "Invalid number of columns!"
+        return 1
+    fi
+
+    valid_types=("int" "char" "float")
+    pk_count=0
+
+    touch "$table_name"
+    touch "$table_name.meta"
+
+    for ((i=1; i<=num_cols; i++)); do
+        echo "Column $i name: "
+        read -r col
+        col=$(echo "$col" | xargs)
+
+        echo "Column $i type (int/char/float): "
+        read -r dtype
+        dtype=$(echo "$dtype" | tr '[:upper:]' '[:lower:]' | xargs)
+
+        if [[ ! " ${valid_types[*]} " =~ " $dtype " ]]; then
+            echo "Invalid datatype: $dtype"
+            rm "$table_name" "$table_name.meta"
+            return 1
+        fi
+
+        echo "Is this column PRIMARY KEY? (y/n): "
+        read -r pk_flag
+        pk_flag=$(echo "$pk_flag" | tr '[:upper:]' '[:lower:]' | xargs)
+
+        if [[ "$pk_flag" == "y" ]]; then
+            ispk="pk"
+            ((pk_count++))
+        else
+            ispk=""
+        fi
+
+        if [[ "$ispk" == "pk" ]]; then
+            echo "$col:$dtype:pk" >> "$table_name.meta"
+        else
+            echo "$col:$dtype" >> "$table_name.meta"
+        fi
+    done
+
+    if [[ $pk_count -ne 1 ]]; then
+        echo "You must define exactly ONE primary key!"
+        rm "$table_name" "$table_name.meta"
+        return 1
+    fi
+
+    echo "Table '$table_name' created successfully."
+
+
+fi
+}

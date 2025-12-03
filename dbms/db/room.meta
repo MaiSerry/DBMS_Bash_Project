@@ -1,0 +1,3 @@
+room_id:int:pk
+room_name:char
+stuff:char

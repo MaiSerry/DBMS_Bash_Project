@@ -1,0 +1,35 @@
+#! /usr/bin/bash
+
+list_database(){
+
+# -----------------------------------------
+# ADDED: detect mode
+# -----------------------------------------
+mode="$1"
+
+if [[ "$mode" == "menu" ]]; then
+    echo "Listing all databases..."
+    ls ./dbms
+    return
+fi
+
+echo "Enter your command as (show databases)"
+read -r line
+
+line=$(echo "$line" | tr '[:upper:]' '[:lower:]')
+
+set -- $line
+count=$#
+
+if [[ "$count" -eq 2 ]]
+then
+  if [[ "$1" == "show" && "$2" == "databases" ]]
+  then
+   ls ./dbms
+  else
+   echo "invalid syntax"
+  fi
+else
+    echo "invalid syntax"
+fi
+}

@@ -1,0 +1,26 @@
+#! usr/bin/bash
+
+list_tables(){
+if [[ "$mode" = "sql" ]]
+then
+read -r -p "Enter your command: " cmd
+cmd=$(echo "$cmd" | tr '[:upper:]' '[:lower:]')
+set -- $cmd
+count=$#
+
+if [[ "$count" -eq 2 ]]
+then
+  if [[ "$1" == "show" && "$2" == "tables" ]]
+  then
+   ls ./
+  else
+   echo syntax error,
+  fi
+else
+  echo error, check your syntax,
+fi
+########################## MAIN MENU ####################################
+else
+  ls ./
+fi
+}

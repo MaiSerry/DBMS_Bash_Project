@@ -1,0 +1,54 @@
+#! usr/bin/bash
+
+drop_table(){
+if [[ "$mode" = "sql" ]]
+then
+read -r cmd
+cmd=$(echo "$cmd" | tr '[:upper:]' '[:lower:]')
+set -- $cmd
+count=$#
+drop=$3
+
+if [[ "$count" -eq 3 ]]
+then
+  if [[ "$1" == "drop" && "$2" == "table" ]]
+  then
+  if [[ ! -f "$drop" ]]; then
+        echo "Table not found!"
+        return
+   else
+   read -r -p "Do you want drop $db (y/n)?" ans
+   ans=$( echo "$ans" | tr [':upper:'] [':lower:'])
+   if [[ ${ans,,} =~ y* ]]
+   then
+     rm -r $drop
+     echo table dropped successfully,
+   else
+     return 1
+   fi
+   fi
+  else
+   echo syntax error,
+  fi
+else
+  echo check your syntax,
+fi
+#########################MAIN MENU#################################
+else
+read -r -p "Enter Table Name: " name
+if [[ ! -f "$name" ]]; then
+        echo "Table not found!"
+        return
+else
+  read -r -p "Do you want drop $db (y/n)?" ans
+  ans=$( echo "$ans" | tr [':upper:'] [':lower:'])
+  if [[ ${ans,,} =~ y* ]]
+  then
+    rm -r $drop
+    echo table dropped successfully,
+  else
+    return 1 
+  fi
+fi  
+fi
+}

@@ -1,0 +1,64 @@
+#! usr/bin/bash
+
+dropDB(){
+    mode="$1"
+    ans=''
+
+    if [[ "$mode" == "menu" ]]; then
+        echo "Enter database name to drop: "
+        read -r db
+        db=$(echo "$db" | xargs)
+        db=$(echo "$db" | tr '[:upper:]' '[:lower:]')
+
+        if [[ ! -d "./dbms/$db" ]]; then
+            echo "Not Found $db"
+            return 1
+        else
+            
+            read -r -p "Do you want drop $db (y/n)?" ans
+            ans=$( echo "$ans" | tr [':upper:'] [':lower:'])
+            #read -r ans
+            #if (( "$ans"=~ ^"y" ))
+            if [[ ${ans,,} =~ y* ]]
+            then
+              rm -r ./dbms/$db
+              echo "$db was dropped successfully"
+            else
+              return 1
+            fi
+        fi
+        return
+    fi
+    # -----------------------------------------
+
+    # SQL mode: parsing command
+    echo "enter your command: "
+    read  -r db
+    db=$(echo "$db" | xargs)
+    db=$(echo "$db" | tr '[:upper:]' '[:lower:]')
+
+    set -- $db
+    count=$#
+    db=$2
+
+    if [[ "$1" == "drop" ]]; then
+        if  [[ ! -d "./dbms/$db" ]]; then
+            echo "Not Found $db"
+            return 1
+        else
+        echo "Do you want drop $db (y/n)?"
+            read -r ans
+            if (( "$ans"== "y" ))
+            then
+              rm -r ./dbms/$db
+              echo "$db was dropped successfully"
+            else
+              return 1
+            fi
+            #rm -r ./dbms/$db
+            #echo "$db was dropped successfully"
+        fi
+    else  
+        echo "syntax error!!"
+    fi
+}

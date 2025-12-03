@@ -1,0 +1,183 @@
+#! /usr/bin/bash 
+select_fromT() {
+if [[ "$mode" = "menu" ]]
+then
+echo "_________________________________"
+echo "      select from table          "
+echo "_________________________________"
+
+
+read -p "enter table name: " table_name
+
+table_name=$(echo "$table_name" | xargs)
+
+if [[ ! -f "$table_name" ]]; then
+        echo "$table_name not found!"
+        return 1
+    fi
+
+num_columns=$(head -n 1 "$table_name" |  awk -F: '{print NF}')
+
+echo "1.Display entire table "
+echo " "
+echo "2. Select specific column"
+echo " "
+echo "3. Select specific row "
+echo " "
+read  -p "Enter your choice: " choice
+echo "                            "
+echo "         Header             "
+#echo "$(head -n 1 "$table_name.meta" | column -t -s ":" )"
+cat "$table_name.meta"
+
+case $choice in
+        1)
+            echo -e "\nThe Entire data in :"
+            cat "$table_name" 2> /dev/null | column -t -s ":" ;;
+        2)
+        	
+         for ((i=1; i<=num_columns; i++))
+             do
+              while true; do
+         	echo "Please specify field number or EXIT"
+         	read FN 2> /dev/null
+         	if [[ $FN =~ ^(exit|EXIT|Exit)$ ]]; then
+   			 break 2
+		fi
+	 	if ! [[ $FN =~ ^[0-9]+$ ]]; then
+    			echo "Invalid input! Please enter a number "
+    			continue
+		fi
+
+		# Check field number is in range
+		if (( FN < 1 || FN > num_columns )); then
+		    echo "Field number out of range! Must be 1 to  $num_coumns"
+		    continue
+		fi
+         	
+         	awk $'{print $0}' "$table_name" | cut -f$FN -d":"
+         	echo $'------------------------------'        	
+         	break
+         	done
+              done ;;
+              
+             
+             
+          3) 	 
+		      while true; do
+		 	echo "Please specify field number or EXIT"
+		 	read FN 2> /dev/null
+		 	if [[ $FN =~ ^(exit|EXIT|Exit)$ ]]; then
+	   			 break 
+			fi
+		 	if ! [[ $FN =~ ^[0-9]+$ ]]; then
+	    			echo "Invalid input! Please enter a number "
+	    			continue
+			fi
+
+			# Check field number is in range
+			if (( FN < 1 || FN > num_columns )); then
+			    echo "Field number out of range! Must be 1 to  $num_coumns"
+			    continue
+			fi
+		 	
+		 	     	
+		 	break
+		 	done
+		 	read -r -p "Enter value to search for: " search_value
+
+                # search and store the result
+                search_result=$(awk -v col="$FN" -v val="$search_value" -F: 'BEGIN {IGNORECASE=1} NR==1 {header=$0; next} $col ~ val' "$table_name")
+
+                if [ -z "$search_result" ]; then
+                    echo -e "\nNo rows matching the search "
+                
+                else
+                    echo -e "\nRows matching your search :"
+                    echo "$search_result" | column -t -s ":"
+                fi
+            		;;
+     
+          
+                *)
+        	echo "Invalid choice!"
+        		;;
+         esac 
+         
+         
+#########################MAIN MENU#################################
+else
+
+    echo "Enter your SQL command:"
+    read -r cmd_line
+
+    cmd_line=$(echo "$cmd_line" | xargs)
+
+    cmd_line=$(echo "$cmd_line" | tr '[:upper:]' '[:lower:]')
+
+    set -- $cmd_line
+    count=$#
+    #echo $count
+    if [[ $1 != "select" ]]; then
+        echo "#Syntax not recognized or not supported!#"
+        return 1
+    fi
+
+    if [[ "$cmd_line" =~ ^select[[:space:]]+\*[[:space:]]+from[[:space:]]+([a-zA-Z0-9_]+)$ ]]
+    then
+      table_name="${BASH_REMATCH[1]}"
+      column -t -s: "$table_name"
+      return
+    fi
+
+    # CASE 2: select col1,col2 from table_name
+    if [[ $3 == "from" && $count -eq 4 ]]; then
+        table_name=$4
+        cols_str=$2
+        if [[ ! -f "$table_name" ]]; then
+            echo "$table_name not found!"
+            return 1
+        fi
+
+        IFS=',' read -ra col_names <<< "$cols_str"
+        for col_name in "${col_names[@]}"; do
+           
+            col_num=$(awk -F: -v cname="$col_name" '$1==cname{print NR}'   "$table_name.meta")
+            if [[ -z "$col_num" ]]; then
+                echo "Column $col_name not found!"
+                return 1
+            fi
+            awk -F: -v col="$col_num" '{print $col}' "$table_name"
+        done
+        return
+    fi
+
+    # CASE 3: select * from table_name where col=value
+    #if [[ $2 == "*" && $3 == "from" && $5 == "where" && $count -eq 7 ]]; then
+    #    table_name=$4
+    #    cond_col=$6
+    #    cond_val=$7
+
+    #   if [[ ! -f "$table_name" ]]; then
+    #        echo "$table_name not found!"
+    #       return 1
+    #    fi
+
+        # إيجاد رقم العمود في metadata
+        col_num=$(awk -F: -v cname="$cond_col" '$1==cname{print NR}' "$table_name.meta")
+        if [[ -z "$col_num" ]]; then
+            echo "Column $cond_col not found!"
+            return 1
+        fi
+
+        awk -F: -v col="$col_num" -v val="$cond_val" 'NR==1{print; next} $col ~ val {print}' "$table_name"
+        return
+    fi
+
+    echo "Syntax not recognized or not supported!"
+
+fi       
+}
+
+#select_fromT
+

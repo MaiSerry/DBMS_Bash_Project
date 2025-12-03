@@ -1,0 +1,36 @@
+#! usr/bin/bash
+
+table_menu() {
+    #echo -----------------------------------------------------------------
+    local db=$1
+    while true; do
+        echo "----------------------------------"
+        echo "Database $db menu"
+        echo '----------------------------------'
+        echo "1.Create Table"
+        echo "2.List Tables"
+        echo "3.Select From Table"
+        echo "4.Insert into Table"
+        echo "5.Update Table"
+        echo "6.Delete From Table"
+        echo "7.Drop Table"
+        echo "8.Exit"
+        read -r -p'Enter your option ' opt
+        case $opt in
+            1) create_tables ;;
+            2) list_tables  ;;
+            3) select_fromT ;;
+            4) insert_intoT ;;
+            5) update_table  ;;
+            6) Delete_fromT ;;
+            7) drop_table ;;
+            8) break ;;
+            *) echo "Incorrect option !!!" 
+		     sleep 2 ;;
+        esac
+         
+    done
+}
+
+
+table_menu
